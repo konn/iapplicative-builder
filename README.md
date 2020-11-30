@@ -87,7 +87,12 @@ plan1' = Ix.do
       pure Output1 {..}
 ```
 
-We have
+We can dump dependency graph from rules:
+
+```haskell
+ghci> depGraph plan1
+edges [(Rule 'TheOutput,Rule 'ConstVal),(Rule 'TheOutput,Rule 'AppendedVal),(Rule 'TheOutput,Rule 'ShownIntVal),(Rule 'ConstVal,Rule 'ShownIntVal),(Rule 'AppendedVal,Rule 'ShownIntVal),(Rule 'AppendedVal,Rule 'RawStrVal),(Rule 'ShownIntVal,Rule 'RawIntVal),(Rule 'RawStrVal,Field "strVal"),(Rule 'RawIntVal,Field "intVal")]
+```
 
 ## Thoughts
 * We can make `Build` just an arrow; their return value is superfluous for now.
