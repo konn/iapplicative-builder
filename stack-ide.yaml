@@ -1,0 +1,6 @@
+resolver: lts-16.23
+work-dir: .stack-ide
+packages:
+- .
+ghc-options:
+  $everything: -haddock

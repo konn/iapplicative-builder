@@ -1,0 +1,8 @@
+cradle:
+  stack:
+    stackYaml: stack-ide.yaml
+    components:
+    - path: ./src
+      component: iapplicative-builder:lib
+    - path: ./app/Main.hs
+      component: iapplicative-builder:exe:iapplicative-builder-exe

@@ -1,0 +1,72 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 96634304a143e9b8add13f9d713f3490b81fd0c2fa3f27177b853e6fd1e17f0e
+
+name:           iapplicative-builder
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/cached-builder#readme>
+homepage:       https://github.com/githubuser/cached-builder#readme
+bug-reports:    https://github.com/githubuser/cached-builder/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2020 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/cached-builder
+
+library
+  exposed-modules:
+      Data.Builder.Applicative.Indexed
+      Data.Builder.Applicative.Indexed.Dependency
+      Data.Builder.Applicative.Indexed.Types
+      Data.HList
+      Data.Membership
+  other-modules:
+      Paths_iapplicative_builder
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      algebraic-graphs
+    , base >=4.7 && <5
+    , deepseq
+    , dlist
+    , free
+    , hashable
+    , indexed
+    , kan-extensions
+    , tagged
+    , unordered-containers
+  default-language: Haskell2010
+
+executable iapplicative-builder-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_iapplicative_builder
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      algebraic-graphs
+    , base >=4.7 && <5
+    , deepseq
+    , dlist
+    , free
+    , hashable
+    , iapplicative-builder
+    , indexed
+    , kan-extensions
+    , tagged
+    , unordered-containers
+  default-language: Haskell2010
