@@ -4,6 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
@@ -45,13 +46,18 @@ data Membership a as where
 
 deriving instance Show (Membership a as)
 
+withMembership ::
+  Membership a as -> (Member a as => r) -> r
+withMembership Here act = act
+withMembership (There mem) act = withMembership mem act
+
 class Member l ls where
   membership :: Membership l ls
 
-instance {-# OVERLAPPING #-} Member k ('(k, v) ': ks) where
+instance {-# INCOHERENT #-} Member k ('(k, v) ': ks) where
   membership = Here
 
-instance Member k ks => Member k ('(k', v) ': ks) where
+instance {-# INCOHERENT #-} Member k ks => Member k ('(k', v) ': ks) where
   membership = There $ membership @k @ks
 
 data SomeMember ls where

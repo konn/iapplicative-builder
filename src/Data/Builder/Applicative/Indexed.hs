@@ -33,7 +33,7 @@ where
 
 import Data.Builder.Applicative.Indexed.Types
 import Data.HList (HList (..), ix)
-import Data.Membership (Lookup', Member (..))
+import Data.Membership (Lookup', Member (..), Membership)
 import Data.Proxy (Proxy (..))
 import Data.Tagged (Tagged (..))
 import GHC.Exts (Proxy#)
@@ -65,6 +65,6 @@ runRuleOn env built = interpRule go
   where
     go :: RuleF env is x -> x
     go r = case r of
-      Depends (_ :: Proxy# l) -> unTagged $ ix (membership @l) built
+      Depends (mem :: Membership l is) -> unTagged $ ix mem built
       Whole -> env
       Field (_ :: Proxy# l) -> getField @l env

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 96634304a143e9b8add13f9d713f3490b81fd0c2fa3f27177b853e6fd1e17f0e
+-- hash: 95946a88f7113c5fcf8a69f05246e690fe5beb01605970b4e53ad8dcacb6f61a
 
 name:           iapplicative-builder
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Data.Builder.Applicative.Indexed
       Data.Builder.Applicative.Indexed.Dependency
+      Data.Builder.Applicative.Indexed.Parallel
       Data.Builder.Applicative.Indexed.Types
       Data.HList
       Data.Membership
@@ -40,12 +41,16 @@ library
   build-depends:
       algebraic-graphs
     , base >=4.7 && <5
+    , bifunctors
+    , containers
     , deepseq
     , dlist
     , free
     , hashable
     , indexed
     , kan-extensions
+    , monad-par
+    , parallel
     , tagged
     , unordered-containers
   default-language: Haskell2010
@@ -58,15 +63,25 @@ executable iapplicative-builder-exe
       app
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      algebraic-graphs
-    , base >=4.7 && <5
-    , deepseq
-    , dlist
-    , free
-    , hashable
+      base >=4.7 && <5
     , iapplicative-builder
     , indexed
-    , kan-extensions
-    , tagged
-    , unordered-containers
+  default-language: Haskell2010
+
+test-suite iapplicative-builder-test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  other-modules:
+      Paths_iapplicative_builder
+  hs-source-dirs:
+      tests
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      base >=4.7 && <5
+    , iapplicative-builder
+    , indexed
+    , inspection-testing
+    , tasty
   default-language: Haskell2010

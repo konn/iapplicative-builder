@@ -5,15 +5,18 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 {- | Building mechanism with static dependency graph with no cyclic dependency,
    guaranteed by indexed applicatives!
@@ -29,6 +32,9 @@ module Data.Builder.Applicative.Indexed.Types
     depends,
     interpRule,
     interpRuleA,
+    embedRule,
+    TaggedRule (..),
+    rules,
   )
 where
 
@@ -40,19 +46,21 @@ import Data.Functor.Indexed
     IxFunctor (..),
     IxPointed (..),
   )
+import Data.HList
 import Data.Kind (Type)
-import Data.Membership (Absent, Lookup, Lookup', Member (..))
-import Data.Type.Equality (type (~~))
+import Data.Membership (Absent, Lookup, Lookup', Member (..), Membership (There))
+import Data.Type.Equality
 import GHC.Exts (Proxy#, proxy#)
 import GHC.OverloadedLabels (IsLabel (..))
 import GHC.Records (HasField (..))
 import GHC.TypeLits (KnownSymbol)
 import Type.Reflection ()
+import Unsafe.Coerce (unsafeCoerce)
 
 -- Must be an ordinary applicative for /fixed/ is
 -- N.B. is must be type-level maps, not a list, but we use list for a sake of brevity.
 data RuleF env (is :: [(k, Type)]) a where
-  Depends :: Member l is => Proxy# l -> RuleF env is (Lookup' l is)
+  Depends :: forall l is env. Membership l is -> RuleF env is (Lookup' l is)
   Whole :: RuleF env is env
   Field ::
     (KnownSymbol l, HasField l env v) =>
@@ -63,7 +71,7 @@ embedRule :: RuleF env is a -> Rule env is a
 embedRule = MkRule . liftAp . liftCoyoneda
 
 depends :: forall l env is. Member l is => Rule env is (Lookup' l is)
-depends = embedRule $ Depends (proxy# :: Proxy# l)
+depends = embedRule $ Depends (membership @l @is)
 
 whole :: forall a is. Rule a is a
 whole = embedRule Whole
@@ -120,3 +128,36 @@ instance
   IsLabel l (Rule env' is' a -> Build env is js b)
   where
   fromLabel = Rule (proxy# :: Proxy# l)
+
+newtype TaggedRule env is t a = TaggedRule {unTaggedRule :: Rule env is a}
+
+rules :: Build env '[] js a -> HList (TaggedRule env js) js
+rules = rulesWith HNil
+
+rulesWith ::
+  HList (TaggedRule env is) is ->
+  Build env is js a ->
+  HList (TaggedRule env js) js
+rulesWith hl IPure {} = hl
+rulesWith hl (IMap _ bdy) = rulesWith hl bdy
+rulesWith hl (IAp l r) =
+  let hl' = rulesWith hl l
+   in rulesWith hl' r
+rulesWith hl (Rule _ b) =
+  mapHList (TaggedRule . shiftRule . unTaggedRule) $
+    TaggedRule b :- hl
+
+shiftRule ::
+  forall l a1 is env x.
+  Lookup l is ~ 'Nothing =>
+  Rule env is x ->
+  Rule env ('(l, a1) ': is) x
+shiftRule = interpRuleA go
+  where
+    go :: forall a. RuleF env is a -> Rule env ('(l, a1) ': is) a
+    go = \case
+      Depends (mem :: Membership l' is) ->
+        gcastWith (unsafeCoerce $ Refl @() :: a :~: Lookup' l' ('(l, a1) ': is)) $
+          embedRule $ Depends (There mem)
+      Whole -> whole
+      Field (_ :: Proxy# l') -> field @l'

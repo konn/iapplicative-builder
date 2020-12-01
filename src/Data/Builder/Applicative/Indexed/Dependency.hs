@@ -30,6 +30,7 @@ where
 
 import qualified Algebra.Graph.AdjacencyMap as G
 import Control.Applicative
+import Data.Builder.Applicative.Indexed
 import Data.Builder.Applicative.Indexed.Types
 import qualified Data.DList as DL
 import Data.Function (on)
@@ -135,16 +136,16 @@ trans l (Forward r) = Forward $ trans l r
 
 listRuleDeps :: Rule env is a -> [Dependency env ('(k, v) ': is)]
 listRuleDeps = DL.toList . getConst . interpRuleA go
-
-go :: RuleF env is x -> Const (DL.DList (Dependency env ('(k, v) ': is))) x
-{-# INLINE go #-}
-go f = case f of
-  Depends (_ :: Proxy# l) ->
-    Const $
-      DL.singleton $
-        DepRule (SomeMembership $ There $ membership @l)
-  Whole -> Const $ DL.singleton Global
-  (Field psl) ->
-    Const $
-      DL.singleton $
-        DepField (AField psl)
+  where
+    go :: RuleF env is x -> Const (DL.DList (Dependency env ('(k, v) ': is))) x
+    {-# INLINE go #-}
+    go f = case f of
+      Depends mem ->
+        Const $
+          DL.singleton $
+            DepRule (SomeMembership $ There mem)
+      Whole -> Const $ DL.singleton Global
+      (Field psl) ->
+        Const $
+          DL.singleton $
+            DepField (AField psl)

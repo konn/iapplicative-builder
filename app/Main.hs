@@ -12,6 +12,7 @@ module Main where
 
 import Data.Builder.Applicative.Indexed
 import Data.Builder.Applicative.Indexed.Dependency
+import Data.Builder.Applicative.Indexed.Parallel
 import Data.Functor.Indexed
 import Data.Kind
 import Data.Proxy
@@ -60,6 +61,7 @@ plan1 =
       pure Output1 {..}
 
 mkOutput1 :: Input1 -> Output1
+{-# INLINE mkOutput1 #-}
 mkOutput1 = build (Proxy @TheOutput) plan1
 
 -- >>> mkOutput1 $ Input1 12 "foo"
@@ -108,10 +110,15 @@ plan1' = Ix.do
 -- >>> depGraph plan1
 -- edges [(Rule 'TheOutput,Rule 'ConstVal),(Rule 'TheOutput,Rule 'AppendedVal),(Rule 'TheOutput,Rule 'ShownIntVal),(Rule 'ConstVal,Rule 'ShownIntVal),(Rule 'AppendedVal,Rule 'ShownIntVal),(Rule 'AppendedVal,Rule 'RawStrVal),(Rule 'ShownIntVal,Rule 'RawIntVal),(Rule 'RawStrVal,Field "strVal"),(Rule 'RawIntVal,Field "intVal")]
 
+-- Parallel version
+mkOutput1Par :: Input1 -> Output1
+mkOutput1Par = buildPar (Proxy @TheOutput) plan1
+
 main :: IO ()
 main = do
   print $ mkOutput1 $ Input1 12 "foo"
   print $ build' @"theOutput" plan1' $ Input1 12 "foo"
+  print $ mkOutput1Par $ Input1 12 "foo"
   print $ depGraph plan1
 
 data Targets1

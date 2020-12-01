@@ -21,14 +21,6 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
-- unordered-containers
-- hashable
-- deepseq
-- dlist
-- algebraic-graphs
-- free
-- kan-extensions
-- tagged
 - indexed
 
 ghc-options:
@@ -36,6 +28,19 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+  - algebraic-graphs
+  - bifunctors
+  - containers
+  - deepseq
+  - dlist
+  - free
+  - hashable
+  - kan-extensions
+  - monad-par
+  - parallel
+  - tagged
+  - unordered-containers
 
 executables:
   iapplicative-builder-exe:
@@ -47,3 +52,19 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - iapplicative-builder
+
+tests:
+  iapplicative-builder-test:
+    main: test.hs
+    source-dirs: tests
+    build-tools:
+    - tasty-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O
+    dependencies:
+    - iapplicative-builder
+    - tasty
+    - inspection-testing

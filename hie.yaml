@@ -6,3 +6,5 @@ cradle:
       component: iapplicative-builder:lib
     - path: ./app/Main.hs
       component: iapplicative-builder:exe:iapplicative-builder-exe
+    - path: ./tests
+      component: iapplicative-builder:test:iapplicative-builder-test
