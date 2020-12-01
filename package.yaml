@@ -67,4 +67,5 @@ tests:
     dependencies:
     - iapplicative-builder
     - tasty
+    - tasty-hunit
     - inspection-testing

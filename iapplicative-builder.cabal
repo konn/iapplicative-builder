@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 95946a88f7113c5fcf8a69f05246e690fe5beb01605970b4e53ad8dcacb6f61a
+-- hash: 3eaf45f89a1ef1d6506031ad05b16744b9808d4c5becdb020a708dedfbc624c1
 
 name:           iapplicative-builder
 version:        0.1.0.0
@@ -72,6 +72,7 @@ test-suite iapplicative-builder-test
   type: exitcode-stdio-1.0
   main-is: test.hs
   other-modules:
+      Data.Builder.Applicative.IndexedSpec
       Paths_iapplicative_builder
   hs-source-dirs:
       tests
@@ -84,4 +85,5 @@ test-suite iapplicative-builder-test
     , indexed
     , inspection-testing
     , tasty
+    , tasty-hunit
   default-language: Haskell2010

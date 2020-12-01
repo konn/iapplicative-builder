@@ -1,4 +1,1 @@
-module Main where
-
-main :: IO ()
-main = return ()
+{-# OPTIONS_GHC -F -pgmF tasty-discover -optF --tree-display #-}
