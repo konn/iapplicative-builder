@@ -29,10 +29,12 @@ infixr 9 :-
 -- If Membership is just a newtyped Int and HList a Vector/SmallArray,
 -- it becomes just an constant indexing.
 ix :: Membership k as -> HList h as -> h k (Lookup' k as)
+{-# INLINE ix #-}
 ix (There rest) (_ :- xs) = unsafeCoerce $ ix rest xs
 ix Here (hkv :- _) = hkv
 
 mapHList :: (forall x t. h t x -> k t x) -> HList h xs -> HList k xs
+{-# INLINE mapHList #-}
 mapHList f hl = case hl of
   HNil -> HNil
   x :- xs -> f x :- mapHList f xs
@@ -59,7 +61,8 @@ instance
   ) =>
   Generate ('(k, v) ': xs)
   where
-  generateA f =
+  {-# INLINE generateA #-}
+  generateA = \f ->
     (:-) <$> f (Proxy @k) (Proxy @v) <*> generateA do
       \(k' :: proxy k') (v' :: proxy' v') ->
         gcastWith

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3eaf45f89a1ef1d6506031ad05b16744b9808d4c5becdb020a708dedfbc624c1
+-- hash: ab522d71d6fc875384cedab0d784c90bf32280429f8cbb808aa60130fa13fc7c
 
 name:           iapplicative-builder
 version:        0.1.0.0
@@ -76,7 +76,7 @@ test-suite iapplicative-builder-test
       Paths_iapplicative_builder
   hs-source-dirs:
       tests
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
   build-tool-depends:
       tasty-discover:tasty-discover
   build-depends:

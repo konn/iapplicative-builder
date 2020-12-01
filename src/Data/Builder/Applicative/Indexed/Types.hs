@@ -38,7 +38,7 @@ module Data.Builder.Applicative.Indexed.Types
   )
 where
 
-import Control.Applicative.Free.Fast (Ap, liftAp, runAp)
+import Control.Applicative.Free.Final (Ap, liftAp, runAp)
 import Data.Functor.Coyoneda (Coyoneda, hoistCoyoneda, liftCoyoneda, lowerCoyoneda)
 import Data.Functor.Identity (Identity (Identity), runIdentity)
 import Data.Functor.Indexed
@@ -50,7 +50,7 @@ import Data.HList
 import Data.Kind (Type)
 import Data.Membership (Absent, Lookup, Lookup', Member (..), Membership (There))
 import Data.Type.Equality
-import GHC.Exts (Proxy#, proxy#)
+import GHC.Exts (Proxy#, inline, proxy#)
 import GHC.OverloadedLabels (IsLabel (..))
 import GHC.Records (HasField (..))
 import GHC.TypeLits (KnownSymbol)
@@ -68,15 +68,19 @@ data RuleF env (is :: [(k, Type)]) a where
     RuleF env is v
 
 embedRule :: RuleF env is a -> Rule env is a
+{-# INLINE embedRule #-}
 embedRule = MkRule . liftAp . liftCoyoneda
 
 depends :: forall l env is. Member l is => Rule env is (Lookup' l is)
+{-# INLINE depends #-}
 depends = embedRule $ Depends (membership @l @is)
 
 whole :: forall a is. Rule a is a
+{-# INLINE whole #-}
 whole = embedRule Whole
 
 field :: forall l env is a. (KnownSymbol l, HasField l env a) => Rule env is a
+{-# INLINE field #-}
 field = embedRule $ Field (proxy# :: Proxy# l)
 
 newtype Rule env is a = MkRule {_runRule :: Ap (Coyoneda (RuleF env is)) a}
@@ -87,12 +91,14 @@ interpRuleA ::
   (forall x. RuleF env is x -> f x) ->
   Rule env is a ->
   f a
+{-# INLINE interpRuleA #-}
 interpRuleA go = runAp (lowerCoyoneda . hoistCoyoneda go) . _runRule
 
 interpRule ::
   (forall x. RuleF env is x -> x) ->
   Rule env is a ->
   a
+{-# INLINE interpRule #-}
 interpRule go = runIdentity . interpRuleA (Identity . go)
 
 -- N.B. @js@ and @is@ must be type-level maps, not a list, but we use list for a sake of brevity.
@@ -103,19 +109,24 @@ data Build env (is :: [(k, Type)]) (js :: [(k, Type)]) a where
   IPure :: a -> Build env is is a
 
 rule :: Absent l is => proxy l -> Rule env is v -> Build env is ('(l, v) ': is) ()
+{-# INLINE rule #-}
 rule (_ :: proxy l) = Rule (proxy# :: Proxy# l)
 
 rule' :: forall l is env v. Absent l is => Rule env is v -> Build env is ('(l, v) ': is) ()
+{-# INLINE rule' #-}
 rule' = Rule (proxy# :: Proxy# l)
 
 instance IxFunctor (Build env) where
   imap = IMap
+  {-# INLINE imap #-}
 
 instance IxPointed (Build env) where
   ireturn = IPure
+  {-# INLINE ireturn #-}
 
 instance IxApplicative (Build env) where
   iap = IAp
+  {-# INLINE iap #-}
 
 instance
   ( js ~~ ('(l, a) ': is)
@@ -128,21 +139,24 @@ instance
   IsLabel l (Rule env' is' a -> Build env is js b)
   where
   fromLabel = Rule (proxy# :: Proxy# l)
+  {-# INLINE fromLabel #-}
 
 newtype TaggedRule env is t a = TaggedRule {unTaggedRule :: Rule env is a}
 
 rules :: Build env '[] js a -> HList (TaggedRule env js) js
+{-# INLINE rules #-}
 rules = rulesWith HNil
 
 rulesWith ::
   HList (TaggedRule env is) is ->
   Build env is js a ->
   HList (TaggedRule env js) js
+{-# INLINE rulesWith #-}
 rulesWith hl IPure {} = hl
-rulesWith hl (IMap _ bdy) = rulesWith hl bdy
+rulesWith hl (IMap _ bdy) = inline rulesWith hl bdy
 rulesWith hl (IAp l r) =
-  let hl' = rulesWith hl l
-   in rulesWith hl' r
+  let hl' = inline rulesWith hl l
+   in inline rulesWith hl' r
 rulesWith hl (Rule _ b) =
   mapHList (TaggedRule . shiftRule . unTaggedRule) $
     TaggedRule b :- hl
@@ -152,9 +166,11 @@ shiftRule ::
   Lookup l is ~ 'Nothing =>
   Rule env is x ->
   Rule env ('(l, a1) ': is) x
+{-# INLINE shiftRule #-}
 shiftRule = interpRuleA go
   where
     go :: forall a. RuleF env is a -> Rule env ('(l, a1) ': is) a
+    {-# INLINE go #-}
     go = \case
       Depends (mem :: Membership l' is) ->
         gcastWith (unsafeCoerce $ Refl @() :: a :~: Lookup' l' ('(l, a1) ': is)) $

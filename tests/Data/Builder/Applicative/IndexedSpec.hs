@@ -17,6 +17,7 @@ import Data.Builder.Applicative.Indexed
 import Data.Builder.Applicative.Indexed.Types (RuleF)
 import Data.Functor.Indexed
 import Data.Proxy
+import GHC.Base (inline)
 import Test.Inspection
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -34,6 +35,7 @@ data Output1 = Output1 {intShown :: String, intStrVal :: String, constant :: Int
 --
 -- We also use BlockArguments to save parens.
 plan1 :: Build Input1 '[] _ ()
+{-# INLINE plan1 #-}
 plan1 =
   #rawIntVal
     (field @"intVal")
@@ -52,7 +54,7 @@ plan1 =
 
 mkOutput1 :: Input1 -> Output1
 {-# INLINE mkOutput1 #-}
-mkOutput1 = build (Proxy @"theOutput") plan1
+mkOutput1 = inline build (Proxy @"theOutput") plan1
 
 {-# INLINE output1 #-}
 output1 :: Output1

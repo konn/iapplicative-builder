@@ -48,6 +48,7 @@ deriving instance Show (Membership a as)
 
 withMembership ::
   Membership a as -> (Member a as => r) -> r
+{-# INLINE withMembership #-}
 withMembership Here act = act
 withMembership (There mem) act = withMembership mem act
 
@@ -56,9 +57,11 @@ class Member l ls where
 
 instance {-# INCOHERENT #-} Member k ('(k, v) ': ks) where
   membership = Here
+  {-# INLINE membership #-}
 
 instance {-# INCOHERENT #-} Member k ks => Member k ('(k', v) ': ks) where
   membership = There $ membership @k @ks
+  {-# INLINE membership #-}
 
 data SomeMember ls where
   SomeMembership :: Membership l ls -> SomeMember ls
