@@ -5,7 +5,6 @@
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -32,7 +31,6 @@ where
 import qualified Algebra.Graph.AdjacencyMap as G
 import Control.Applicative
 import Data.Builder.Applicative.Indexed.Types
-import Data.Coerce (coerce)
 import qualified Data.DList as DL
 import Data.Function (on)
 import Data.Kind (Constraint)
@@ -43,7 +41,6 @@ import GHC.Exts (Proxy#)
 import GHC.Records
 import GHC.TypeLits
 import Type.Reflection (Typeable, typeRep)
-import Unsafe.Coerce (unsafeCoerce)
 
 data Dependency env is
   = DepRule (SomeMember is)
@@ -98,41 +95,43 @@ instance Eq (SomeFieldOf a) where
 instance Ord (SomeFieldOf a) where
   compare = comparing fieldName
 
-newtype Offset j = Offset Int
-  deriving newtype (Eq)
-
-succO :: Offset j -> Offset (a ': j)
-succO = coerce $ succ @Int
-
 depGraph :: Build env '[] is a -> G.AdjacencyMap (Dependency env is)
-depGraph = fst . depGraphWith (Offset @'[] 0)
+depGraph = fst . depGraphWith Stay
+
+shiftDep :: Step is js -> Dependency env is -> Dependency env js
+shiftDep off dep = case dep of
+  DepRule (SomeMembership mem) ->
+    DepRule $ SomeMembership $ walk off mem
+  DepField senv -> DepField senv
+  Global -> Global
 
 depGraphWith ::
-  Offset js ->
+  Step is ks ->
   Build env js is a ->
-  (G.AdjacencyMap (Dependency env is), Offset is)
-depGraphWith off IPure {} = (G.empty, off)
+  (G.AdjacencyMap (Dependency env ks), Step js is)
+depGraphWith _ IPure {} = (G.empty, Stay)
 depGraphWith off (IAp l r) =
-  let (g, off') = depGraphWith off l
-      (h, off'') = depGraphWith off' r
-   in (G.gmap (shift off' off'') g `G.overlay` h, off'')
+  let (h, off') = depGraphWith off r
+      (g, off'') = depGraphWith off' l
+   in (G.gmap (shiftDep off) g `G.overlay` h, trans off'' off')
 depGraphWith off (IMap _ a) = depGraphWith off a
 depGraphWith off (Rule (_ :: Proxy# l) act) =
   let src = G.vertex $ DepRule (SomeMembership $ membership @l)
       dst = G.vertices $ listRuleDeps act
-   in (src `G.connect` dst, succO off)
+      grp = src `G.connect` dst
+   in (G.gmap (shiftDep off) grp, Forward Stay)
 
-shift :: Offset js1 -> Offset is -> Dependency env js1 -> Dependency env is
-shift (Offset beg) (Offset end) dep =
-  case dep of
-    (DepRule mem) -> DepRule $ unsafeShift (end - beg) mem
-    (DepField senv) -> DepField senv
-    Global -> Global
+data Step is js where
+  Stay :: Step is is
+  Forward :: Step is js -> Step is ('(k, v) ': js)
 
-unsafeShift :: Int -> SomeMember js1 -> SomeMember is
-unsafeShift n (SomeMembership i)
-  | n <= 0 = SomeMembership $ unsafeCoerce i
-  | otherwise = unsafeShift (n - 1) $ SomeMembership $ There i
+walk :: Step is js -> Membership l is -> Membership l js
+walk Stay mem = mem
+walk (Forward stp) mem = There $ walk stp mem
+
+trans :: Step is js -> Step js ks -> Step is ks
+trans l Stay = l
+trans l (Forward r) = Forward $ trans l r
 
 listRuleDeps :: Rule env is a -> [Dependency env ('(k, v) ': is)]
 listRuleDeps = DL.toList . getConst . interpRuleA go
