@@ -38,7 +38,7 @@ module Data.Builder.Applicative.Indexed.Types
   )
 where
 
-import Control.Applicative.Free.Final (Ap, liftAp, runAp)
+import Control.Applicative.Free.Fast (Ap, liftAp, runAp)
 import Data.Functor.Coyoneda (Coyoneda, hoistCoyoneda, liftCoyoneda, lowerCoyoneda)
 import Data.Functor.Identity (Identity (Identity), runIdentity)
 import Data.Functor.Indexed
