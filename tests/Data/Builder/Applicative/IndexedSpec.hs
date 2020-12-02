@@ -14,7 +14,7 @@
 module Data.Builder.Applicative.IndexedSpec where
 
 import Data.Builder.Applicative.Indexed
-import Data.Builder.Applicative.Indexed.Types (RuleF)
+import Data.Builder.Applicative.Indexed.Types (Build', RuleF)
 import Data.Functor.Indexed
 import Data.HList
 import Data.Proxy
@@ -94,7 +94,7 @@ test_concrete_fun =
   testGroup
     "concrete builder doesn't include intermediate data types"
     [ testCase "No Build type" $
-        case $(inspectTest $ 'mkOutput1 `hasNoType` ''Build) of
+        case $(inspectTest $ 'mkOutput1 `hasNoType` ''Build') of
           Failure msg -> assertFailure msg
           Success {} -> pure ()
     , testCase "No Rule type" $
@@ -112,7 +112,7 @@ test_concrete_val =
   testGroup
     "fully applied value gets inlined"
     [ testCase "No Build type" $
-        case $(inspectTest $ 'output1 `hasNoType` ''Build) of
+        case $(inspectTest $ 'output1 `hasNoType` ''Build') of
           Failure msg -> assertFailure msg
           Success {} -> pure ()
     , testCase "No Rule type" $
