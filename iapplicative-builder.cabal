@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ab522d71d6fc875384cedab0d784c90bf32280429f8cbb808aa60130fa13fc7c
+-- hash: a62b19b71a33ee523ebaf8adda59ba6828c374a29aaeb6c37380c0b1ababe452
 
 name:           iapplicative-builder
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       Data.Builder.Applicative.Indexed.Dependency
       Data.Builder.Applicative.Indexed.Parallel
       Data.Builder.Applicative.Indexed.Types
+      Data.Functor.Indexed.WrapCategory
       Data.HList
       Data.Membership
   other-modules:
@@ -84,6 +85,8 @@ test-suite iapplicative-builder-test
     , iapplicative-builder
     , indexed
     , inspection-testing
+    , tagged
     , tasty
+    , tasty-expected-failure
     , tasty-hunit
   default-language: Haskell2010

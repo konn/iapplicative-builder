@@ -66,6 +66,8 @@ tests:
     - -O2
     dependencies:
     - iapplicative-builder
+    - tagged
     - tasty
+    - tasty-expected-failure
     - tasty-hunit
     - inspection-testing

@@ -4,7 +4,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PartialTypeSignatures #-}
@@ -13,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {- | Building mechanism with static dependency graph with no cyclic dependency,
@@ -29,6 +29,10 @@ module Data.Builder.Applicative.Indexed
     whole,
     field,
     depends,
+
+    -- * Auxiliary
+    runRuleOn,
+    WithArg (..),
   )
 where
 
@@ -56,27 +60,20 @@ buildAll env = buildAllWith env HNil
 
 buildAllWith :: forall env is js a. env -> HList Tagged is -> Build env is js a -> HList Tagged js
 {-# INLINE buildAllWith #-}
-buildAllWith env = go
+buildAllWith env = iterBuild go
   where
-    go :: forall ks us x. HList Tagged ks -> Build env ks us x -> HList Tagged us
-    {-# INLINEABLE go #-}
-    go = \hl -> \case
-      Rule (_l :: Proxy# l) maker ->
-        let val = inline runRuleOn env hl maker
-         in Tagged @l val :- hl
-      (IMap _ inl) -> inline go hl inl
-      (IAp l r) ->
-        let hl' = inline go hl l
-         in inline go hl' r
-      IPure {} -> hl
+    go :: Proxy# l -> HList Tagged x -> Rule env x z -> HList Tagged ('(l, z) ': x)
+    {-# INLINE go #-}
+    go = \_ hl r -> Tagged (runRuleOn r env hl) :- hl
 
-runRuleOn :: forall env is a. env -> HList Tagged is -> Rule env is a -> a
+runRuleOn :: forall env is a. Rule env is a -> env -> HList Tagged is -> a
 {-# INLINE runRuleOn #-}
-runRuleOn env built = interpRule go
+runRuleOn = runWithArg . interpRuleA go
   where
     {-# INLINE go #-}
-    go :: RuleF env is x -> x
+    go :: RuleF env is x -> WithArg env is x
     go r = case r of
-      Depends (mem :: Membership l is) -> unTagged $ ix mem built
-      Whole -> env
-      Field (_ :: Proxy# l) -> getField @l env
+      Depends (mem :: Membership l is) ->
+        WithArg $ const $ unTagged . ix mem
+      Whole -> WithArg const
+      Field (_ :: Proxy# l) -> WithArg $ const . getField @l

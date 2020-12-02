@@ -16,10 +16,13 @@ module Data.Builder.Applicative.IndexedSpec where
 import Data.Builder.Applicative.Indexed
 import Data.Builder.Applicative.Indexed.Types (RuleF)
 import Data.Functor.Indexed
+import Data.HList
 import Data.Proxy
+import Data.Tagged
 import GHC.Base (inline)
 import Test.Inspection
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 data Input1 = Input1 {intVal :: Int, strVal :: String}
@@ -46,11 +49,15 @@ plan1 =
       (++) <$> depends @"shownIntVal" <*> depends @"rawStrVal"
     *>> #constVal do
       42 <$ depends @"shownIntVal"
-    *>> #theOutput do
-      intShown <- depends @"shownIntVal"
-      constant <- depends @"constVal"
-      intStrVal <- depends @"appendedVal"
-      pure Output1 {..}
+    *>> #theOutput theOutputRule
+
+theOutputRule :: Rule env _ Output1
+{-# INLINE theOutputRule #-}
+theOutputRule = do
+  intShown <- depends @"shownIntVal"
+  constant <- depends @"constVal"
+  intStrVal <- depends @"appendedVal"
+  pure Output1 {..}
 
 mkOutput1 :: Input1 -> Output1
 {-# INLINE mkOutput1 #-}
@@ -59,6 +66,28 @@ mkOutput1 = inline build (Proxy @"theOutput") plan1
 {-# INLINE output1 #-}
 output1 :: Output1
 output1 = mkOutput1 $ Input1 42 "foo"
+
+completeRuler :: Input1 -> HList Tagged _ -> Output1
+{-# INLINE completeRuler #-}
+completeRuler = runRuleOn theOutputRule
+
+test_runRuleOn_concrete :: TestTree
+test_runRuleOn_concrete =
+  testGroup
+    "runRuleOn"
+    [ testCase "No Rule type" $
+        case $(inspectTest $ 'completeRuler `hasNoType` ''Rule) of
+          Failure msg -> assertFailure msg
+          Success {} -> pure ()
+    , testCase "No RuleF type" $
+        case $(inspectTest $ 'completeRuler `hasNoType` ''RuleF) of
+          Failure msg -> assertFailure msg
+          Success {} -> pure ()
+    , testCase "No WithArgs type" $
+        case $(inspectTest $ 'completeRuler `hasNoType` ''WithArg) of
+          Success {} -> pure ()
+          Failure msg -> assertFailure msg
+    ]
 
 test_concrete_fun :: TestTree
 test_concrete_fun =

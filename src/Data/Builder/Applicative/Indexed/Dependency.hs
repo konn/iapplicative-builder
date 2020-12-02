@@ -34,11 +34,12 @@ import Data.Builder.Applicative.Indexed
 import Data.Builder.Applicative.Indexed.Types
 import qualified Data.DList as DL
 import Data.Function (on)
+import Data.Functor.Indexed.WrapCategory
 import Data.Kind (Constraint)
 import Data.Membership
 import Data.Ord (comparing)
 import Data.Proxy
-import GHC.Exts (Proxy#)
+import GHC.Exts (Proxy#, inline)
 import GHC.Records
 import GHC.TypeLits
 import Type.Reflection (Typeable, typeRep)
@@ -97,7 +98,8 @@ instance Ord (SomeFieldOf a) where
   compare = comparing fieldName
 
 depGraph :: Build env '[] is a -> G.AdjacencyMap (Dependency env is)
-depGraph = fst . depGraphWith Stay
+{-# INLINE depGraph #-}
+depGraph = fst . depGraphWith Stay . runCategory . runBuild
 
 shiftDep :: Step is js -> Dependency env is -> Dependency env js
 shiftDep off dep = case dep of
@@ -108,15 +110,15 @@ shiftDep off dep = case dep of
 
 depGraphWith ::
   Step is ks ->
-  Build env js is a ->
+  Build' env js is ->
   (G.AdjacencyMap (Dependency env ks), Step js is)
-depGraphWith _ IPure {} = (G.empty, Stay)
-depGraphWith off (IAp l r) =
-  let (h, off') = depGraphWith off r
-      (g, off'') = depGraphWith off' l
+{-# INLINEABLE depGraphWith #-}
+depGraphWith _ Empty = (G.empty, Stay)
+depGraphWith off (Node l r) =
+  let (h, off') = inline depGraphWith off r
+      (g, off'') = inline depGraphWith off' l
    in (G.gmap (shiftDep off) g `G.overlay` h, trans off'' off')
-depGraphWith off (IMap _ a) = depGraphWith off a
-depGraphWith off (Rule (_ :: Proxy# l) act) =
+depGraphWith off (Define (_ :: Proxy# l) act) =
   let src = G.vertex $ DepRule (SomeMembership $ membership @l)
       dst = G.vertices $ listRuleDeps act
       grp = src `G.connect` dst
